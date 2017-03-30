@@ -301,6 +301,7 @@ class WXBot:
                 f.write(json.dumps(self.account_info))
         print '[INFO] Get %d contacts' % len(self.contact_list)
         print '[INFO] Start to process messages .'
+        self.got_contact()
         return True
 
 
@@ -452,7 +453,8 @@ class WXBot:
             if uid == account['UserName']:
                 return True
         return False
-
+    def got_contact(self):
+        pass
     def handle_msg_all(self, msg):
         """
         处理所有消息，请子类化后覆盖此函数
@@ -577,6 +579,7 @@ class WXBot:
             msg_content['img'] = self.session.get(msg_content['data']).content.encode('hex')
             if self.DEBUG:
                 image = self.get_msg_img(msg_id)
+                msg_content['file_name'] = image
                 print '    %s[Image] %s' % (msg_prefix, image)
         elif mtype == 34:
             msg_content['type'] = 4
@@ -584,6 +587,7 @@ class WXBot:
             msg_content['voice'] = self.session.get(msg_content['data']).content.encode('hex')
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
+                msg_content['file_name'] = voice
                 print '    %s[Voice] %s' % (msg_prefix, voice)
         elif mtype == 37:
             msg_content['type'] = 37
@@ -597,7 +601,8 @@ class WXBot:
                                    'alias': info['Alias'],
                                    'province': info['Province'],
                                    'city': info['City'],
-                                   'gender': ['unknown', 'male', 'female'][info['Sex']]}
+                                   'gender': ['unknown', 'male', 'female'][info['Sex']],
+                                   'genderCN': [u'未知', u'男', u'女'][info['Sex']]}
             if self.DEBUG:
                 print '    %s[Recommend]' % msg_prefix
                 print '    -----------------------------'
@@ -620,7 +625,7 @@ class WXBot:
             elif msg['AppMsgType'] == 7:
                 app_msg_type = 'weibo'
             else:
-                app_msg_type = 'unknown'
+                app_msg_type = 'unknown(%d)' % msg['AppMsgType'] 
             msg_content['data'] = {'type': app_msg_type,
                                    'title': msg['FileName'],
                                    'desc': self.search_content('des', content, 'xml'),
@@ -662,6 +667,8 @@ class WXBot:
             msg_content['type'] = 13
             msg_content['data'] = self.get_video_url(msg_id)
             if self.DEBUG:
+                video = self.get_video(msg_id)
+                msg_content['file_name'] = video
                 print '    %s[video] %s' % (msg_prefix, msg_content['data'])
         else:
             msg_content['type'] = 99
@@ -1192,6 +1199,7 @@ class WXBot:
             if self.get_contact():
                 print '[INFO] Get %d contacts' % len(self.contact_list)
                 print '[INFO] Start to process messages .'
+                self.got_contact()
             self.proc_msg()
             self.status = 'loginout'
         except Exception,e:
@@ -1441,6 +1449,14 @@ class WXBot:
         r = self.session.get(url)
         data = r.content
         fn = 'img_' + msgid + '.jpg'
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
+            f.write(data)
+        return fn
+
+    def get_image(self, url, name = None):
+        r = self.session.get(url)
+        data = r.content
+        fn = 'img_' + name
         with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
