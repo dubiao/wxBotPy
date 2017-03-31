@@ -24,16 +24,16 @@ class MyWXBot(WXBot):
             uid = self.get_user_id(name)
             if uid:
                 self.superUser.append(uid);
-                print name, uid
+                print name.encode("utf8"), uid
             pass
         pass
         self.notifyToGroup = self.get_user_id(notifyGroupName)
         if self.notifyToGroup:
-            print "Our Group:", notifyGroupName, self.notifyToGroup
+            print "Our Group:", notifyGroupName.encode("utf8"), self.notifyToGroup
     def handle_msg_all(self, msg):
-        print "Content", msg['content']
-        print "User:", msg['user']
-        print "Msg", msg
+        # print "Content", msg['content']
+        # print "User:", msg['user']
+        # print "Msg", msg
         if not self.handleMoneyInfo(msg):
             if msg['msg_type_id'] == 4:
                 if  msg['user']['id'] in self.superUser :
@@ -65,7 +65,7 @@ class MyWXBot(WXBot):
             elif file_name:
                 self.sendToAdmin(fromUid, fowordFile % (fromName), file_name, False)
             else :
-                print msg['content']['data']
+                # print msg['content']['data']
                 self.sendToAdmin(fromUid, fowordOther % (fromName, msg['content']))
                 pass
         elif contentType == 7 :
@@ -161,7 +161,6 @@ def search_content(key, content, fmat='attr', withTag=False):
                     else :
                         rex = outer.format(keyname, rex)
                     pass
-                print rex
                 pm = re.search(rex, content)
                 if pm:
                     returnValue = pm.group(1)
