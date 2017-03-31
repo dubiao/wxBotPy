@@ -5,9 +5,10 @@
 from wxbot import *
 
 superAdmin = {
-    u'admin' # name of super users who want to get notify
+    u'标admin', # name of super users who want to get notify
+    u'果果admin'
 };
-notifyGroupName = u"testqun"
+notifyGroupName = u"金智宝贝内勤队"
 fowordMsg = u"%s 说：\n---------\n%s"
 fowordPic = u"%s 发来图片："
 fowordVoice = u"%s 发来语音："
@@ -176,7 +177,7 @@ def search_content(key, content, fmat='attr', withTag=False):
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
-    bot.conf['qr'] = 'png'
+    bot.conf['qr'] = 'tty'
     bot.is_big_contact = False   #如果确定通讯录过大，无法获取，可以直接配置，跳过检查。假如不是过大的话，这个方法可能无法获取所有的联系人
     bot.run()
 
