@@ -625,7 +625,7 @@ class WXBot:
             elif msg['AppMsgType'] == 7:
                 app_msg_type = 'weibo'
             else:
-                app_msg_type = 'unknown(%d)' % msg['AppMsgType'] 
+                app_msg_type = 'unknown(%d)' % msg['AppMsgType']
             msg_content['data'] = {'type': app_msg_type,
                                    'title': msg['FileName'],
                                    'desc': self.search_content('des', content, 'xml'),
@@ -633,6 +633,32 @@ class WXBot:
                                    'from': self.search_content('appname', content, 'xml'),
                                    'content': msg.get('Content')  # 有的公众号会发一次性3 4条链接一个大图,如果只url那只能获取第一条,content里面有所有的链接
                                    }
+            if "https://payapp.weixin.qq.com/payf2f/" in msg['Url'] :
+                msg_content['sub_type'] = "payf2f"
+                topline = self.search_content("topline", content, 'xml', True)
+                key = self.search_content(["key", "word"], topline, 'xml')
+                value = self.search_content(["value", "word"], topline, 'xml')
+
+                lines = self.search_content("lines", content, 'xml', True)
+                lines = self.search_content(["line"], lines, 'xml', True)
+                info = []
+                info.append(msg['FileName'])
+                info.append(u"{0}{1}".format(key, value))
+                for x in range(0, len(lines) - 1):
+                    key = self.search_content(["key", "word"], lines[x], 'xml')
+                    value = self.search_content(["value", "word"], lines[x], 'xml')
+                    info.append(u"{0}{1}".format(key, value))
+                msg_content['sub_data'] = info
+            elif "https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate" in msg['Url'] and "text=text001" in msg['Url']:
+                msg_content['sub_type'] = "transfer_money"
+                msg_content['sub_data'] = []
+                msg_content['sub_data'].append(msg['FileName'])
+                money = self.search_content(["wcpayinfo", "feedesc"], content, 'xml')
+                pay_memo = self.search_content(["wcpayinfo", "pay_memo"], content, 'xml')
+                msg_content['sub_data'].append(money)
+                msg_content['sub_data'].append(pay_memo)
+
+                pass
             if self.DEBUG:
                 print '    %s[Share] %s' % (msg_prefix, app_msg_type)
                 print '    --------------------------'
@@ -765,7 +791,7 @@ class WXBot:
         self.status = 'loginsuccess'  #WxbotManage使用
         while True:
             if self.status == 'wait4loginout':  #WxbotManage使用
-                return 
+                return
             check_time = time.time()
             try:
                 [retcode, selector] = self.sync_check()
@@ -1159,15 +1185,47 @@ class WXBot:
             return True
 
     @staticmethod
-    def search_content(key, content, fmat='attr'):
+    def search_content(key, content, fmat='attr', withTag=False):
+        returnValue = None;
         if fmat == 'attr':
             pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
             if pm:
-                return pm.group(1)
+                returnValue = pm.group(1)
         elif fmat == 'xml':
-            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
+            if not withTag:
+                pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
+                if pm:
+                    returnValue = pm.group(1)
+            else :
+                pm = re.search('<{0}>(.*?)</{0}>'.format(key), content)
+                if pm:
+                    returnValue = pm.group(1)
+            if type(key) == list:
+                mostInner ='<{0}>(.*?)</{0}>'
+                if len(key) == 1:
+                    rex = mostInner.format(key[0])
+                    matches = re.findall(rex, content)
+                    return matches;
+                else:
+                    key.reverse()
+                    outer = '<{0}>.*?{1}.*?</{0}>'
+                    rex = None;
+                    for keyname in key:
+                        if not rex:
+                            rex = mostInner.format(keyname)
+                        else :
+                            rex = outer.format(keyname, rex)
+                        pass
+                    pm = re.search(rex, content)
+                    if pm:
+                        returnValue = pm.group(1)
+        if returnValue :
+            cdr = '^<!\[CDATA\[(.*?)]]>$'
+            pm = re.search(cdr, returnValue)
             if pm:
                 return pm.group(1)
+            else:
+                return returnValue
         return 'unknown'
 
     def run(self):

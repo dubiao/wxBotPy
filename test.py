@@ -5,8 +5,9 @@
 from wxbot import *
 
 superAdmin = {
-
+    u'admin' # name of super users who want to get notify
 };
+notifyGroupName = u"testqun"
 fowordMsg = u"%s 说：\n---------\n%s"
 fowordPic = u"%s 发来图片："
 fowordVoice = u"%s 发来语音："
@@ -26,16 +27,18 @@ class MyWXBot(WXBot):
                 print name, uid
             pass
         pass
+        self.notifyToGroup = self.get_user_id(notifyGroupName)
+        if self.notifyToGroup:
+            print "Our Group:", notifyGroupName, self.notifyToGroup
     def handle_msg_all(self, msg):
         print "Content", msg['content']
         print "User:", msg['user']
         print "Msg", msg
-        if msg['msg_type_id'] == 4:
-            pass
-            if  msg['user']['id'] in self.superUser :
-                print "!!!!! from ADMIN !!!!!";
-                if not self.handleCommad(msg):
-                    if not self.handleMoneyInfo(msg):
+        if not self.handleMoneyInfo(msg):
+            if msg['msg_type_id'] == 4:
+                if  msg['user']['id'] in self.superUser :
+                    print "!!!!! from ADMIN !!!!!";
+                    if not self.handleCommad(msg):
                         self.handleFoword(msg);
 
             # if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
@@ -43,7 +46,7 @@ class MyWXBot(WXBot):
             #     self.send_img_msg_by_uid("img/1.png", msg['user']['id'])
             #     self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
     def handleCommad(self, msg):
-        pass 
+        pass
         return False;
     def handleFoword(self, msg):
         fromUid = msg['user']['id'];
@@ -66,7 +69,7 @@ class MyWXBot(WXBot):
                 self.sendToAdmin(fromUid, fowordOther % (fromName, msg['content']))
                 pass
         elif contentType == 7 :
-            msg = u"%s分享了一个%s来源%s\n%s\n%s" % \
+            msg = u"%s分享了一个%s链接（来源：%s）\n%s\n%s" % \
             (fromName, content['type'], content['from'], content['title'], content['desc'])
             self.sendToAdmin(fromUid, msg)
             self.sendToAdmin(fromUid, content['url'])
@@ -80,33 +83,96 @@ class MyWXBot(WXBot):
             # self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
         pass
         return False;
-    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = True):
+    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = True, to_group = True):
         if text:
             for au in self.superUser:
                 if (fromUid != au):
-                    self.send_msg_by_uid(text, au)    
+                    self.send_msg_by_uid(text, au)
                 pass
+            if to_group:
+                self.send_msg_by_uid(text, self.notifyToGroup)
         if file_name:
             file_name = os.path.join(self.temp_pwd,file_name)
             for au in self.superUser:
                 if (fromUid != au):
                     if is_pic:
                         self.send_img_msg_by_uid(file_name, au)
+                        if to_group:
+                            self.send_img_msg_by_uid(file_name, self.notifyToGroup)
                     else:
                         self.send_file_msg_by_uid(file_name, au)
+                        if to_group:
+                            self.send_file_msg_by_uid(file_name, self.notifyToGroup)
                 pass
-            
+
         pass
     def handleMoneyInfo(self, msg):
+        fromUid = msg['user']['id'];
+        fromName = msg['user']['name'];
+        say = None
+        if 'sub_type' in msg['content']:
+            if msg['content']['sub_type'] == 'payf2f':
+                say = "\n".join(msg['content']['sub_data'])
+            if msg['content']['sub_type'] == 'transfer_money':
+                say = "\n".join(msg['content']['sub_data'])
+                say = u'%s发起%s\n需要在手机上点击的确认。' %(fromName, say);
+        if msg['content']['type'] == 12 and u'红包' in msg['content']['data']:
+            say = u'%s发来红包，需要在手机上点击领取。' %(fromName);
         pass
+        if say :
+            self.sendToAdmin(fromUid, say, to_group=True)
+            return True;
         return False;
 '''
     def schedule(self):
         self.send_msg(u'张三', u'测试')
         time.sleep(1)
 '''
+# @staticmethod
+def search_content(key, content, fmat='attr', withTag=False):
+    returnValue = None;
+    if fmat == 'attr':
+        pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
+        if pm:
+            returnValue = pm.group(1)
+    elif fmat == 'xml':
+        if not withTag:
+            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
+            if pm:
+                returnValue = pm.group(1)
+        else :
+            pm = re.search('<{0}>(.*?)</{0}>'.format(key), content)
+            if pm:
+                returnValue = pm.group(1)
 
-
+        if type(key) == list:
+            mostInner ='<{0}>(.*?)</{0}>'
+            if len(key) == 1:
+                rex = mostInner.format(key[0])
+                matches = re.findall(rex, content)
+                return matches;
+            else:
+                key.reverse()
+                outer = '<{0}>.*?{1}.*?</{0}>'
+                rex = None;
+                for keyname in key:
+                    if not rex:
+                        rex = mostInner.format(keyname)
+                    else :
+                        rex = outer.format(keyname, rex)
+                    pass
+                print rex
+                pm = re.search(rex, content)
+                if pm:
+                    returnValue = pm.group(1)
+    if returnValue :
+        cdr = '^<!\[CDATA\[(.*?)]]>$'
+        pm = re.search(cdr, returnValue)
+        if pm:
+            return pm.group(1)
+        else:
+            return returnValue
+    return 'unknown'
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
