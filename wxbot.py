@@ -544,7 +544,7 @@ class WXBot:
             pass
 
         msg_prefix = (msg_content['user']['name'] + ':') if 'user' in msg_content else ''
-
+        msg_prefix  = msg_prefix.encode("utf-8")
         if mtype == 1:
             if content.find('http://weixin.qq.com/cgi-bin/redirectforward?args=') != -1:
                 r = self.session.get(content)
@@ -570,30 +570,30 @@ class WXBot:
                     msg_content['data'] = content
                 if self.DEBUG:
                     try:
-                        print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
+                        print '    %s[Text] %s' % (msg_prefix, msg_content['data'].encode("utf-8"))
                     except UnicodeEncodeError:
                         print '    %s[Text] (illegal text).' % msg_prefix
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
             msg_content['img'] = self.session.get(msg_content['data']).content.encode('hex')
+            image = self.get_msg_img(msg_id)
+            msg_content['file_name'] = image
             if self.DEBUG:
-                image = self.get_msg_img(msg_id)
-                msg_content['file_name'] = image
                 print '    %s[Image] %s' % (msg_prefix, image)
         elif mtype == 34:
             msg_content['type'] = 4
             msg_content['data'] = self.get_voice_url(msg_id)
             msg_content['voice'] = self.session.get(msg_content['data']).content.encode('hex')
+            voice = self.get_voice(msg_id)
+            msg_content['file_name'] = voice
             if self.DEBUG:
-                voice = self.get_voice(msg_id)
-                msg_content['file_name'] = voice
                 print '    %s[Voice] %s' % (msg_prefix, voice)
         elif mtype == 37:
             msg_content['type'] = 37
             msg_content['data'] = msg['RecommendInfo']
             if self.DEBUG:
-                print '    %s[useradd] %s' % (msg_prefix,msg['RecommendInfo']['NickName'])
+                print '    %s[useradd] %s' % (msg_prefix,msg['RecommendInfo']['NickName'].encode("utf-8"))
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -606,16 +606,19 @@ class WXBot:
             if self.DEBUG:
                 print '    %s[Recommend]' % msg_prefix
                 print '    -----------------------------'
-                print '    | NickName: %s' % info['NickName']
-                print '    | Alias: %s' % info['Alias']
-                print '    | Local: %s %s' % (info['Province'], info['City'])
-                print '    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
+                print '    | NickName: %s' % info['NickName'].encode("utf-8")
+                print '    | Alias: %s' % info['Alias'].encode("utf-8")
+                print '    | Local: %s %s' % (info['Province'], info['City']).encode("utf-8")
+                print '    | Gender: %s' % (['unknown', 'male', 'female'][info['Sex']]).encode("utf-8")
                 print '    -----------------------------'
         elif mtype == 47:
             msg_content['type'] = 6
             msg_content['data'] = self.search_content('cdnurl', content)
+            if ("http" in msg_content['data']):
+                image = self.get_image(msg_content['data'], msg_id + ".gif")
+                msg_content['file_name'] = image
             if self.DEBUG:
-                print '    %s[Animation] %s' % (msg_prefix, msg_content['data'])
+                print '    %s[Animation] %s' % (msg_prefix, msg_content['data'].encode("utf-8"))
         elif mtype == 49:
             msg_content['type'] = 7
             if msg['AppMsgType'] == 3:
@@ -662,11 +665,11 @@ class WXBot:
             if self.DEBUG:
                 print '    %s[Share] %s' % (msg_prefix, app_msg_type)
                 print '    --------------------------'
-                print '    | title: %s' % msg['FileName']
-                print '    | desc: %s' % self.search_content('des', content, 'xml')
-                print '    | link: %s' % msg['Url']
-                print '    | from: %s' % self.search_content('appname', content, 'xml')
-                print '    | content: %s' % (msg.get('content')[:20] if msg.get('content') else "unknown")
+                print '    | title: %s' % msg['FileName'].encode("utf-8")
+                print '    | desc: %s' % self.search_content('des', content, 'xml').encode("utf-8")
+                print '    | link: %s' % msg['Url'].encode("utf-8")
+                print '    | from: %s' % self.search_content('appname', content, 'xml').encode("utf-8")
+                print '    | content: %s' % (msg.get('content')[:20] if msg.get('content') else "unknown").encode("utf-8")
                 print '    --------------------------'
 
         elif mtype == 62:
@@ -692,10 +695,10 @@ class WXBot:
         elif mtype == 43:
             msg_content['type'] = 13
             msg_content['data'] = self.get_video_url(msg_id)
+            video = self.get_video(msg_id)
+            msg_content['file_name'] = video
             if self.DEBUG:
-                video = self.get_video(msg_id)
-                msg_content['file_name'] = video
-                print '    %s[video] %s' % (msg_prefix, msg_content['data'])
+                print '    %s[video] %s' % (msg_prefix, msg_content['data'].encode("utf-8"))
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
@@ -770,7 +773,7 @@ class WXBot:
             user['name'] = HTMLParser.HTMLParser().unescape(user['name'])
 
             if self.DEBUG and msg_type_id != 0:
-                print u'[MSG] %s:' % user['name']
+                print (u'[MSG] %s:' % user['name']).encode("utf-8")
             content = self.extract_msg_content(msg_type_id, msg)
             message = {'msg_type_id': msg_type_id,
                        'msg_id': msg['MsgId'],
@@ -914,7 +917,7 @@ class WXBot:
             return False
         #获取群成员数量并判断邀请方式
         group_num=len(self.group_members[gid])
-        print '[DEBUG] group_name:%s group_num:%s' % (group_name,group_num)
+        print '[DEBUG] group_name:%s group_num:%s' % (group_name.encode("utf-8"),group_num.encode("utf-8"))
         #通过群id判断uid是否在群中
         for user in self.group_members[gid]:
             if user['UserName'] == uid:
@@ -1166,7 +1169,7 @@ class WXBot:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
-                        print '-> ' + name + ': ' + line
+                        print '-> ' + name.encode("utf-8") + ': ' + line.encode("utf-8")
                         if self.send_msg_by_uid(line, uid):
                             pass
                         else:
@@ -1511,10 +1514,10 @@ class WXBot:
             f.write(data)
         return fn
 
-    def get_image(self, url, name = None):
+    def get_image(self, url, name = "unnamed"):
         r = self.session.get(url)
         data = r.content
-        fn = 'img_' + name
+        fn = name
         with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
