@@ -36,10 +36,10 @@ class MyWXBot(WXBot):
         # print "Msg", msg
         if not self.handleMoneyInfo(msg):
             if msg['msg_type_id'] == 4:
-                if  msg['user']['id'] in self.superUser :
-                    print "!!!!! from ADMIN !!!!!";
-                    if not self.handleCommad(msg):
-                        self.handleFoword(msg);
+                # if  msg['user']['id'] in self.superUser :
+                #     print "!!!!! from ADMIN !!!!!";
+                if not self.handleCommad(msg):
+                    self.handleFoword(msg);
 
             # if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
             #   self.send_msg_by_uid(u'hi', msg['user']['id'])
@@ -57,15 +57,17 @@ class MyWXBot(WXBot):
         if contentType == 0:
             self.sendToAdmin(fromUid, fowordMsg % (fromName, content))
         elif contentType in [3, 4, 6, 8, 13]:
-            if contentType == 3 :
-                self.sendToAdmin(fromUid, fowordPic % (fromName), file_name)
+            if (contentType == 3 or contentType == 6):
+                if (file_name)
+                    self.sendToAdmin(fromUid, fowordPic % (fromName), file_name, True)
+                else
+                    self.sendToAdmin(fromUid, fowordPic % (fromName) + "动画表情")
             elif contentType == 4 :
-                self.sendToAdmin(fromUid, fowordVoice % (fromName), file_name, False)
+                self.sendToAdmin(fromUid, fowordVoice % (fromName), file_name)
                 pass
             elif file_name:
-                self.sendToAdmin(fromUid, fowordFile % (fromName), file_name, False)
+                self.sendToAdmin(fromUid, fowordFile % (fromName), file_name)
             else :
-                # print msg['content']['data']
                 self.sendToAdmin(fromUid, fowordOther % (fromName, msg['content']))
                 pass
         elif contentType == 7 :
@@ -83,7 +85,8 @@ class MyWXBot(WXBot):
             # self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
         pass
         return False;
-    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = True, to_group = True):
+    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = False, to_group = True):
+        # fromUid = None
         if text:
             for au in self.superUser:
                 if (fromUid != au):
