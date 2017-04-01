@@ -86,7 +86,7 @@ class MyWXBot(WXBot):
             # self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
         pass
         return False;
-    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = False, to_group = True):
+    def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = False, to_group = False):
         # fromUid = None
         if text:
             for au in self.superUser:
