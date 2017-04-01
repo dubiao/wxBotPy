@@ -58,9 +58,9 @@ class MyWXBot(WXBot):
             self.sendToAdmin(fromUid, fowordMsg % (fromName, content))
         elif contentType in [3, 4, 6, 8, 13]:
             if (contentType == 3 or contentType == 6):
-                if (file_name)
+                if file_name:
                     self.sendToAdmin(fromUid, fowordPic % (fromName), file_name, True)
-                else
+                else:
                     self.sendToAdmin(fromUid, fowordPic % (fromName) + "动画表情")
             elif contentType == 4 :
                 self.sendToAdmin(fromUid, fowordVoice % (fromName), file_name)
