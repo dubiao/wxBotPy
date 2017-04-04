@@ -35,7 +35,7 @@ class MyWXBot(WXBot):
             print "Our Group:", notifyGroupName.encode("utf8"), self.notifyToGroup
         self.cmdFromGroup = self.get_user_id(cmdGroupName)
         if self.cmdFromGroup:
-            print "CMD Group:", notifyGroupName.encode("utf8"), self.cmdFromGroup
+            print "CMD Group:", cmdGroupName.encode("utf8"), self.cmdFromGroup
     def handle_msg_all(self, msg):
         # print "Content", msg['content']
         # print "User:", msg['user']
