@@ -3,11 +3,13 @@
 #
 
 from wxbot import *
+import datetime
 
 superAdmin = {
     u'admin' # name of super users who want to get notify
 };
-notifyGroupName = u"testqun"
+notifyGroupName = u"test群"
+cmdGroupName = u"test群"
 fowordMsg = u"%s 说：\n---------\n%s"
 fowordPic = u"%s 发来图片："
 fowordVoice = u"%s 发来语音："
@@ -18,18 +20,22 @@ fowordOther = u"%s 发来：%s"
 
 class MyWXBot(WXBot):
     def got_contact(self):
-        self.superUser = []
-        print "Super users:"
+        self.superUser = []        
         for name in superAdmin:
             uid = self.get_user_id(name)
             if uid:
                 self.superUser.append(uid);
-                print name.encode("utf8"), uid
+                print "Super user:", name.encode("utf8"), uid
+            else :
+                print name.encode("utf8"), "NOT FOUND";
             pass
         pass
         self.notifyToGroup = self.get_user_id(notifyGroupName)
         if self.notifyToGroup:
             print "Our Group:", notifyGroupName.encode("utf8"), self.notifyToGroup
+        self.cmdFromGroup = self.get_user_id(cmdGroupName)
+        if self.cmdFromGroup:
+            print "CMD Group:", notifyGroupName.encode("utf8"), self.cmdFromGroup
     def handle_msg_all(self, msg):
         # print "Content", msg['content']
         # print "User:", msg['user']
@@ -40,14 +46,37 @@ class MyWXBot(WXBot):
                 #     print "!!!!! from ADMIN !!!!!";
                 if not self.handleCommad(msg):
                     self.handleFoword(msg);
+            elif msg['msg_type_id'] == 3:
+                fromGroupId = msg['user']['id'];
+                content = msg['content']['data'];
+                contentType = msg['content']['type'];
+                fromUid = msg['content']['user']['id'];
+                fromUname = msg['content']['user']['name'];
+                if  fromGroupId == self.cmdFromGroup and contentType == 0:
+                    print fromUname , "CMD"
+                    # print content
+                    # print "================="
+                    self.handleCommadContent(fromGroupId, content);
+                    pass
+
+
 
             # if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
             #   self.send_msg_by_uid(u'hi', msg['user']['id'])
             #     self.send_img_msg_by_uid("img/1.png", msg['user']['id'])
             #     self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
     def handleCommad(self, msg):
-        pass
-        return False;
+        fromUid = msg['user']['id'];
+        content = msg['content']['data'];
+        return False
+        return self.handleCommadContent(fromUid, content);
+    def handleCommadContent(self, uid, content):
+        if content == "auto" :
+            t = datetime.datetime.now().strftime("%m-%d %H:%M")
+            self.send_msg_by_uid("我在线哦。\n" + t, uid)
+        else :    
+            self.send_msg_by_uid("我在线。", uid)
+        return True;
     def handleFoword(self, msg):
         fromUid = msg['user']['id'];
         fromName = msg['user']['name']
@@ -88,25 +117,29 @@ class MyWXBot(WXBot):
     def sendToAdmin(self, fromUid, text=None, file_name = None, is_pic = False, to_group = False):
         # fromUid = None
         if text:
-            for au in self.superUser:
-                if (fromUid != au):
-                    self.send_msg_by_uid(text, au)
-                pass
             if to_group:
                 self.send_msg_by_uid(text, self.notifyToGroup)
+            else : 
+                for au in self.superUser:
+                    if (fromUid != au):
+                        self.send_msg_by_uid(text, au)
+                    pass
+            
         if file_name:
             file_name = os.path.join(self.temp_pwd,file_name)
-            for au in self.superUser:
-                if (fromUid != au):
-                    if is_pic:
-                        self.send_img_msg_by_uid(file_name, au)
-                        if to_group:
-                            self.send_img_msg_by_uid(file_name, self.notifyToGroup)
-                    else:
-                        self.send_file_msg_by_uid(file_name, au)
-                        if to_group:
-                            self.send_file_msg_by_uid(file_name, self.notifyToGroup)
-                pass
+            if to_group:
+                if is_pic:
+                    self.send_img_msg_by_uid(file_name, self.notifyToGroup)
+                else :
+                    self.send_file_msg_by_uid(file_name, self.notifyToGroup)
+            else :
+                for au in self.superUser:
+                    if (fromUid != au):
+                        if is_pic:
+                            self.send_img_msg_by_uid(file_name, au)
+                        else:
+                            self.send_file_msg_by_uid(file_name, au)        
+                    pass
 
         pass
     def handleMoneyInfo(self, msg):
@@ -126,55 +159,12 @@ class MyWXBot(WXBot):
             self.sendToAdmin(fromUid, say, to_group=True)
             return True;
         return False;
-'''
-    def schedule(self):
-        self.send_msg(u'张三', u'测试')
-        time.sleep(1)
-'''
-# @staticmethod
-def search_content(key, content, fmat='attr', withTag=False):
-    returnValue = None;
-    if fmat == 'attr':
-        pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
-        if pm:
-            returnValue = pm.group(1)
-    elif fmat == 'xml':
-        if not withTag:
-            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
-            if pm:
-                returnValue = pm.group(1)
-        else :
-            pm = re.search('<{0}>(.*?)</{0}>'.format(key), content)
-            if pm:
-                returnValue = pm.group(1)
 
-        if type(key) == list:
-            mostInner ='<{0}>(.*?)</{0}>'
-            if len(key) == 1:
-                rex = mostInner.format(key[0])
-                matches = re.findall(rex, content)
-                return matches;
-            else:
-                key.reverse()
-                outer = '<{0}>.*?{1}.*?</{0}>'
-                rex = None;
-                for keyname in key:
-                    if not rex:
-                        rex = mostInner.format(keyname)
-                    else :
-                        rex = outer.format(keyname, rex)
-                    pass
-                pm = re.search(rex, content)
-                if pm:
-                    returnValue = pm.group(1)
-    if returnValue :
-        cdr = '^<!\[CDATA\[(.*?)]]>$'
-        pm = re.search(cdr, returnValue)
-        if pm:
-            return pm.group(1)
-        else:
-            return returnValue
-    return 'unknown'
+    def schedule(self):
+        print "schedule"
+        self.handleCommadContent(self.cmdFromGroup, "auto");
+        return 60 * 60 * 1;
+
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
