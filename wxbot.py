@@ -17,6 +17,7 @@ import random
 from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
+import thread
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
@@ -788,10 +789,22 @@ class WXBot:
         此函数在处理消息的间隙被调用，请不要长时间阻塞此函数
         """
         pass
+        return 0;
+    def threadingSchedule(self, interval):
+        while True:
+            time.sleep(interval)
+            self.schedule()
+            pass
+        pass
 
+    def doSchedule(self):
+        interval = self.schedule()
+        thread.start_new_thread( self.threadingSchedule, (interval, ) )
+        pass
     def proc_msg(self):
         self.test_sync_check()
         self.status = 'loginsuccess'  #WxbotManage使用
+        self.doSchedule()
         while True:
             if self.status == 'wait4loginout':  #WxbotManage使用
                 return
@@ -834,7 +847,6 @@ class WXBot:
                 else:
                     print '[DEBUG] sync_check:', retcode, selector
                     time.sleep(10)
-                self.schedule()
             except:
                 print '[ERROR] Except in proc_msg'
                 print format_exc()
